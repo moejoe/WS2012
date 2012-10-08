@@ -1,0 +1,174 @@
+Uebung 2 - 09.10.2012
+=====================
+  
+Aufgabe 1.1
+-----------
+  
+```{r aufgabe1.1}
+pkw = read.table("../ue_statwth_inf12/Daten/pkw-neuzul11.dat",header=TRUE, sep=";")
+
+total = sum(pkw$TOTAL)
+
+pkw.big_groups = pkw[pkw$TOTAL*100/total > 3,]
+pkw.other = data.frame(GROUP="OTHER", TOTAL=total-sum(pkw.big_groups$TOTAL))
+pkw.summarized = rbind(pkw.big_groups,pkw.other)
+
+rank = sort(pkw.summarized$TOTAL, index.return=TRUE)
+
+pie(pkw.summarized$TOTAL[rank$ix], labels=pkw.summarized$GROUP[rank$ix], col=gray(seq(0.5,1.0,length=dim(pkw.summarized)[1])),main="PKW Neuzulassungen 2011 (Western Europe)")
+```
+
+Aufgabe 1.2
+-----------
+
+```{r aufgabe1,2}
+dat <- read.table("../ue_statwth_inf12/Daten/erasmus1011.dat", header = TRUE, skip = 1)
+
+students = dat$Stud
+names(students) = dat$Länder
+
+students.rank = sort(students, decreasing=TRUE,index.return=TRUE)
+
+barplot(students[students.rank$ix],
+        las=2, 
+        cex.names=0.7, 
+        axis.lty=1, 
+        main="Beliebteste Gastländer österreichischer Studierender Studium 2010/11")
+
+praktikanten = dat$Prak
+names(praktikanten) = dat$Länder
+
+praktikanten.rank = sort(praktikanten,decreasing=TRUE, index.return=TRUE)
+
+barplot(praktikanten[praktikanten.rank$ix],
+        las=2, 
+        cex.names=0.7, 
+        axis.lty=1, 
+        main="Beliebteste Gastländer österreichischer Praktikaten Studium 2010/11")
+
+
+erasmusteilnehmer = dat$Prak + dat$Stud
+names(erasmusteilnehmer) = dat$Länder
+
+erasmusteilnehmer.rank = sort(erasmusteilnehmer,decreasing=TRUE,index.return=TRUE)
+
+barplot(erasmusteilnehmer[erasmusteilnehmer.rank$ix],
+        las=2, 
+        cex.names=0.7, 
+        axis.lty=1, 
+        main="Beliebteste Gastländer österreichischer Erasmusteilnehmer Studium 2010/11")
+```
+
+Aufgabe 1.4
+-----------
+
+### a
+Histogramm
+```{r Aufgab1.4_a}
+
+x=scan("../ue_statwth_inf12/Daten/alt.dat")
+hist.alt = hist(x,freq=FALSE,xlab="Stunden", col="lightgrey")
+
+```
+
+
+### b 
+Häufigkeitsverteilung anhand eines Stemplots
+```{r Aufgabe.4_b}
+stem(x)
+```
+
+Aufgabe 1.5
+------------
+
+### a
+Summenpolygon der relativen Häufgikeiten
+```{r Aufgabe1.5_a}
+n = length(x)
+plot(hist.alt$breaks, c(0,cumsum(hist.alt$counts))/n, type="o", pch=19, lwd=2, xlab="Stunden", ylab="Kumul. rel. Häufigkeiten")
+
+```
+
+### b
+empirsche Verteilungsfunktion:
+
+```{r Aufgabe1.5_b}
+plot(ecdf(x), verticals=TRUE, do.points=FALSE, xlab="Stunden", main="Empirische Verteilungsfunktion")
+
+```
+
+Aufgabe 1.6
+-----------
+
+### a
+```{r Aufgabe1.6_a}
+
+euro.batch4 = read.table("../ue_statwth_inf12/Daten/euroweight4.dat", header=TRUE, skip=1)[,2]
+breaks = seq(7.400,7.650, by=0.010)
+hist(euro.batch4,breaks=breaks, freq=FALSE,main=paste("Batch",4),xlab="Gewicht [g]",col="lightgrey")
+
+
+```
+
+### b
+```{r Aufgabe1.6_b}
+euro.batch6 = read.table("../ue_statwth_inf12/Daten/euroweight6.dat", header=TRUE, skip=1)[,2]
+
+par(mfrow=c(2,1))
+hist(euro.batch4,breaks=breaks, freq=FALSE,main=paste("Batch",4),xlab="Gewicht [g]",col="lightgrey")
+hist(euro.batch6,breaks=breaks, freq=FALSE,main=paste("Batch",6),xlab="Gewicht [g]",col="lightgrey")
+
+par(mfrow=c(1,1))
+```
+
+Aufgabe 1.8
+-----------
+
+```{r Aufgabe1.8}
+
+kennz <- function(x, ro=4) {
+  param <- c(mean(x), median(x), max(x)-min(x), var(x), 
+    sd(x), sd(x)/mean(x), IQR(x), mean(abs(x-mean(x))), 
+    mean(abs(x-median(x)))) 
+  param.m <- matrix(param, ncol=1)
+  dimnames(param.m) <- list(c("Mittel","Median","Spannweite",
+    "Varianz","Streuung","VarKoef","Quartilabstand",
+    "MAD.Mittel","MAD.Median"), "Kennzahlen")
+  return(round(param.m, ro))
+}
+
+
+ozontab=read.table("../ue_statwth_inf12/Daten/ozon.dat", header=TRUE)
+
+
+attach(ozontab)
+by(Ozon, Tag, summary)
+by(Ozon, Tag, fivenum)
+by(Ozon, Tag, kennz, ro=2)
+detach(ozontab)
+
+
+# Quantilendefinition VO
+quant.vo <- function(x, brk, p, plotit=TRUE) {
+  n <- length(x)
+  x.hist <- hist(x, breaks=brk, plot=FALSE)
+  fr <- x.hist$counts
+  xp <- numeric(length(p))
+  for ( k in 1:length(p) ) { 
+    i <- max(which(cumsum(fr)/n <= p[k]))
+    u <- brk[i+1]; o <- brk[i+2]
+    xp[k] <- u+(n*p[k]-cumsum(fr)[i])*(o-u)/fr[i+1] }
+  if ( plotit ) {
+    plot(brk, c(0,cumsum(fr)/n), type="o", lty=1, pch=19, lwd=2, 
+    col="orange2", xlab="x", ylab="Kum. rel. Häufigkeiten", 
+    main="Summenpolygon", axes=FALSE) 
+    axis(1, pos=0, at=brk)
+    axis(2, pos=brk[1])
+    axis(3, pos=1, at=brk)
+    axis(4, pos=brk[length(brk)])
+    for ( k in 1:length(p) ) { 
+      lines(c(brk[1],xp[k],xp[k]), c(p[k],p[k],0), lty=2) }
+    }    
+  return(xp)
+}
+```
